@@ -1,0 +1,218 @@
+	LJMP START
+	ORG	100H
+START: 
+
+LOOP: 						;pętla
+	LCALL LCD_CLR
+	
+	LCALL WPRO
+	
+
+
+	LCALL WAIT_KEY
+	LCALL DODAWANIE
+	
+	
+
+DODAWANIE:  				;odejmowanie
+	CJNE A,#10,ODEJMOWANIE 	
+	
+	
+	MOV A, #'+'
+	LCALL WRITE_DATA
+	
+	LCALL WPRO2
+	
+	MOV A, #'='
+	LCALL WRITE_DATA
+	
+	MOV A, R4
+	ADD A, R6 
+	
+	LCALL BCD
+	LCALL WAIT_KEY
+	LJMP LOOP
+	NOP
+	
+MNOZENIE:					;możenie
+	CJNE A,#12,DZIELENIE
+	
+	
+	MOV A, #'*'
+	LCALL WRITE_DATA
+	
+	LCALL WPRO2
+	
+	MOV A, #'='
+	LCALL WRITE_DATA
+	
+	MOV A, R4
+	MOV B, R6
+	
+	MUL AB
+	LCALL BCD
+	LCALL WAIT_KEY
+	LJMP LOOP
+	NOP
+	
+ODEJMOWANIE:				;odejmowanie
+	CJNE A,#11,MNOZENIE
+	
+	
+	MOV A, #'-'
+	LCALL WRITE_DATA
+	
+	LCALL WPRO2
+	
+	MOV A, #'='
+	LCALL WRITE_DATA
+	
+	
+
+	MOV A, R4			;sprawdzenie czy ujemna
+	CLR C
+	SUBB A,R6
+	MOV R7, A
+	
+	MOV A, #10000000B
+	ANL A, R7
+	
+	CJNE A, #0, WY
+	
+	MOV A, R7
+	LCALL BCD
+	LCALL WAIT_KEY
+	LJMP LOOP
+	NOP
+	
+WY:
+	MOV A, #'-'			;wypisywanie licz ujemych
+	LCALL WRITE_DATA
+	MOV A, #11111111B
+	XRL A, R7
+	INC A
+	LCALL BCD
+	LCALL WAIT_KEY
+	LJMP LOOP
+	NOP
+
+DZIELENIE:
+	CJNE A,#13,BLAD
+	
+	MOV A, #'/'
+	LCALL WRITE_DATA
+	
+	LCALL WPRO2
+	
+	MOV A, #'='
+	LCALL WRITE_DATA
+		
+	MOV A, R6
+	
+	CJNE A, #0, WYNIK
+	
+	LCALL BLAD
+	LCALL WAIT_KEY
+	LJMP LOOP
+	NOP	
+
+WYNIK:				;wynik dzielenia
+	MOV A, R4
+	MOV B, R6
+	DIV AB
+	MOV R7, B
+	LCALL BCD
+	LCALL WAIT_KEY
+	LJMP LOOP
+	NOP
+
+BLAD:				;wyśiwelenie błędu po wprowadzeniu błędbych danych
+	CPL  P1.7
+	MOV A, #'X'
+	LCALL WRITE_DATA
+	LCALL WAIT_KEY
+	LJMP LOOP
+	NOP
+	
+BCD:					;konwersja bcd
+	MOV B,#100
+	DIV AB
+	MOV R7, B 
+	
+	CJNE A, #0, WYPISZ
+
+DZIE:				;wypisywanie dziesiątek i jedności
+	MOV A, R7
+	MOV B,#10
+	DIV AB
+	SWAP A
+	ADD A,B
+	LCALL WRITE_HEX
+	RET
+WYPISZ:				 ;wypisywanie setek	
+	MOV R3, #48
+	ADD A, R3
+	LCALL WRITE_DATA
+	LJMP DZIE
+
+WPRO:
+	LCALL WAIT_KEY
+	MOV R3, A
+	
+	LCALL WAIT_KEY
+	MOV R4, A
+	
+	CJNE A, #15, DWU
+	MOV A, R3
+	MOV R4, A
+	
+	MOV A, #48
+	ADD A, R4
+	LCALL WRITE_DATA
+	
+	RET
+
+DWU:
+	MOV A, #10
+	MOV B, R3
+	
+	MUL AB
+	
+	ADD A, R4
+	MOV R4, A 
+	LCALL BCD
+	
+	RET
+WPRO2:
+	LCALL WAIT_KEY
+	MOV R5, A
+	
+	LCALL WAIT_KEY
+	MOV R6, A
+	
+	CJNE A, #15, DWU2
+	MOV A, R5
+	MOV R6, A
+	
+	MOV A, #48
+	ADD A, R6
+	LCALL WRITE_DATA
+	
+	RET
+
+DWU2:
+	MOV A, #10
+	MOV B, R5
+	
+	MUL AB
+	
+	ADD A, R6
+	MOV R6, A 
+	LCALL BCD
+	
+	RET	
+	
+	
+STOP:			
+	LJMP STOP	
+	NOP
